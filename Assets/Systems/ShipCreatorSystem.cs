@@ -13,7 +13,7 @@ public class ShipCreatorSystem : ComponentSystem
     private Mesh Mesh;
     private Material Material;
 
-    private NativeArray<Entity> Ships;
+    public EntityArchetype ShipArchetype;
 
     protected override void OnCreate()
     {
@@ -23,20 +23,22 @@ public class ShipCreatorSystem : ComponentSystem
 
         EntityManager EntityManager = World.Active.EntityManager;
 
-        EntityArchetype ShipArchetype = EntityManager.CreateArchetype(
+        ShipArchetype = EntityManager.CreateArchetype(
             typeof(ShipComponent),
             typeof(Translation),
             typeof(RenderMesh),
             typeof(LocalToWorld)
         );
 
-        Ships = new NativeArray<Entity>(100, Allocator.Persistent);
+        NativeArray<Entity> Ships = new NativeArray<Entity>(100, Allocator.Persistent);
         EntityManager.CreateEntity(ShipArchetype, Ships);
 
-        SetComponentData(EntityManager);
+        SetComponentData(EntityManager,Ships);
+
+        Ships.Dispose();
     }
 
-    private void SetComponentData(EntityManager EntityManager)
+    private void SetComponentData(EntityManager EntityManager,NativeArray<Entity> Ships)
     {
         for (int i = 0; i < Ships.Length; i++)
         {
@@ -59,20 +61,9 @@ public class ShipCreatorSystem : ComponentSystem
         }
     }
 
-    protected override void OnStopRunning()
-    {
-        base.OnStopRunning();
-        Ships.Dispose();
-    }
-
     protected override void OnUpdate()
     {
         //Do nothing
-    }
-
-    public NativeArray<Entity> GetShips()
-    {
-        return Ships;
     }
 
     private void LoadResources()
