@@ -11,11 +11,11 @@ public class OtherShipMoveSystem : ComponentSystem
     {
         Entities.ForEach((ref ShipComponent shipComponent, ref Translation translation) =>
         {
-            var okDistance = shipComponent.Speed * 1.5f * (1f / 18f);
+            //var okDistance = shipComponent.Speed * 1.5f * (1f / 18f);
 
-            var dir = shipComponent.Target - translation.Value;
+            //var dir = shipComponent.Target - translation.Value;
 
-            var newPos = (math.normalize(dir) * shipComponent.Speed * Time.deltaTime);
+            //var newPos = (math.normalize(dir) * shipComponent.Speed * Time.deltaTime);
 
             //translation.Value += newPos;
         });

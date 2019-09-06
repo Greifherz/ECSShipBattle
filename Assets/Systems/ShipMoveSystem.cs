@@ -31,11 +31,11 @@ public class ShipMoveSystem : JobComponentSystem
         
         public void Execute([ReadOnly] ref ShipComponent shipComponent, ref Translation shipTranslation)
         {
-            var okDistance = shipComponent.Speed * 1.5f * (1f / 18f);
+            //var okDistance = shipComponent.Speed * 1.5f * (1f / 18f);
             
-            var dir = shipComponent.Target - shipTranslation.Value;
+            //var dir = shipComponent.Target - shipTranslation.Value;
 
-            var newPos = (math.normalize(dir) * shipComponent.Speed * DeltaTime);
+            //var newPos = (math.normalize(dir) * shipComponent.Speed * DeltaTime);
 
             //shipTranslation.Value += newPos;
         }

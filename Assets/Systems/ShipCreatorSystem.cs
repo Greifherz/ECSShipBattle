@@ -14,6 +14,13 @@ public class ShipCreatorSystem : ComponentSystem
     private Material Material;
 
     public EntityArchetype ShipArchetype;
+    private NativeArray<Entity> Ships;
+
+    protected override void OnDestroy()
+    {
+        base.OnDestroy();
+        Ships.Dispose();
+    }
 
     protected override void OnCreate()
     {
@@ -30,12 +37,21 @@ public class ShipCreatorSystem : ComponentSystem
             typeof(LocalToWorld)
         );
 
-        NativeArray<Entity> Ships = new NativeArray<Entity>(100, Allocator.Persistent);
+        Ships = new NativeArray<Entity>(1000, Allocator.Persistent);
         EntityManager.CreateEntity(ShipArchetype, Ships);
-
+        
         SetComponentData(EntityManager,Ships);
+        
+    }
 
-        Ships.Dispose();
+    public NativeList<Translation> GetShipTranslations(Allocator allocator)
+    {
+        NativeList<Translation> translations = new NativeList<Translation>(allocator);
+        for (int i = 0; i < Ships.Length; i++)
+        {
+            translations.Add(EntityManager.GetComponentData<Translation>(Ships[i]));
+        }
+        return translations;
     }
 
     private void SetComponentData(EntityManager EntityManager,NativeArray<Entity> Ships)
@@ -50,16 +66,15 @@ public class ShipCreatorSystem : ComponentSystem
 
             EntityManager.SetComponentData(Ships[i], new Translation
             {
-                Value = new Unity.Mathematics.float3(Random.Range(-9f, 9f), Random.Range(-4.5f, 4.5f), 0)
+                Value = new Unity.Mathematics.float3(Random.Range(-5f, 5f), Random.Range(-4.5f, 4.5f), 0)
             });
 
             EntityManager.SetComponentData(Ships[i], new ShipComponent
             {
                 Speed = 2f,
-                Target = EntityManager.GetComponentData<Translation>(Ships[i]).Value
             });
         }
-    }
+    }    
 
     protected override void OnUpdate()
     {

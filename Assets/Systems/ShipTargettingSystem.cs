@@ -11,12 +11,11 @@ using Unity.Mathematics;
 public class ShipTargettingSystem : JobComponentSystem
 {
     private ShipCreatorSystem ShipCreatorSystem;
-    private EntityQuery Query;
     private float okDistance;
 
     protected override void OnCreate()
     {
-        Query = GetEntityQuery(typeof(ShipComponent), ComponentType.ReadOnly<Translation>());
+
     }
 
     protected override void OnStartRunning()
@@ -28,52 +27,61 @@ public class ShipTargettingSystem : JobComponentSystem
 
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
-        var shipComponentType = GetArchetypeChunkComponentType<ShipComponent>();
-        var shipTranslationType = GetArchetypeChunkComponentType<Translation>(true);
-        
+        var otherShips = ShipCreatorSystem.GetShipTranslations(Allocator.TempJob);
+
         var job = new TargettingJob()
         {
-            ShipComponentType = shipComponentType,
-            ShipTranslationType = shipTranslationType
+            OtherShips = otherShips,
+            DeltaTime = Time.deltaTime
         };
 
-        return job.Schedule(Query, inputDeps);
+        var handle = job.Schedule(this);
+
+        handle.Complete();
+
+        otherShips.Dispose();        
+
+        return handle;
     }
 
     [BurstCompile]
-    struct TargettingJob : IJobChunk
+    struct TargettingJob : IJobForEach<ShipComponent, Translation>
     {
-        public ArchetypeChunkComponentType<ShipComponent> ShipComponentType;
-        [ReadOnly] public ArchetypeChunkComponentType<Translation> ShipTranslationType;
+        [ReadOnlyAttribute] public NativeList<Translation> OtherShips;
+        [ReadOnlyAttribute] public float DeltaTime;
 
-        public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex)
+        public void Execute(ref ShipComponent shipC, [ReadOnly] ref Translation shipTranslation)
         {
-            var chunkShips = chunk.GetNativeArray(ShipComponentType);
-            var chunkShipPositions = chunk.GetNativeArray(ShipTranslationType);
+            var okDistance = shipC.Speed * 1.5f * (1f / 18f);
+            var closestDistance = float.MaxValue;
 
-            for (var i = 0; i < chunk.Count; i++)
+            float3 target = shipTranslation.Value;
+
+            for (int j = 0; j < OtherShips.Length; j++)
             {
-                var ship = chunkShips[i];
-                var shipTranslation = chunkShipPositions[i];
-                var okDistance = ship.Speed * 1.5f * (1f / 18f);
+                var otherShipTranslation = OtherShips[j];
+                var tripleBool = shipTranslation.Value == otherShipTranslation.Value;
+                if (tripleBool.x && tripleBool.y && tripleBool.z) continue;
 
-                var closestDistance = float.MaxValue;
+                var distance = math.distance(shipTranslation.Value, otherShipTranslation.Value);
 
-                for (int j = 0; j < chunk.Count ; j++)
+
+                if (distance < closestDistance && distance > okDistance)
                 {
-                    if (j == i) continue;
-                    var otherShip = chunkShips[j];
-                    var otherShipTranslation = chunkShipPositions[j];
-
-                    var distance = math.distance(shipTranslation.Value, otherShipTranslation.Value);
-
-                    if (distance < closestDistance && distance > okDistance)
-                    {
-                        closestDistance = distance;
-                        ship.Target = otherShipTranslation.Value;
-                    }
+                    closestDistance = distance;
+                    target = otherShipTranslation.Value;
                 }
             }
+
+            var dir = target - shipTranslation.Value;// + new float3(0.1f, 0, 0);
+
+            var toSelf = target == shipTranslation.Value;
+            if (toSelf.x && toSelf.y && toSelf.z) return;
+
+            var newPos = (math.normalize(dir) * shipC.Speed * DeltaTime);
+
+            shipTranslation.Value += newPos;
+
         }
     }
 }
